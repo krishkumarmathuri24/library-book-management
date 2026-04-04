@@ -9,6 +9,10 @@ import { run, get, all, initDb } from './database';
 const app = express();
 app.use(cors());
 app.use(express.json());
+ 
+app.get('/', (req, res) => {
+  res.send('📚 LibQueue Backend is running! Access the frontend at https://libqueue-frontend.netlify.app');
+});
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
