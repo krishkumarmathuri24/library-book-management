@@ -11,6 +11,8 @@ export default function BookCatalog() {
   const [books, setBooks] = useState<Book[]>([]);
   const [search, setSearch] = useState('');
   const [requestingId, setRequestingId] = useState<number | null>(null);
+  const [returningId, setReturningId] = useState<number | null>(null);
+  const [myRequests, setMyRequests] = useState<any[]>([]);
   const [filter, setFilter] = useState<'all' | 'available' | 'unavailable'>('all');
 
   useEffect(() => {
@@ -19,8 +21,12 @@ export default function BookCatalog() {
 
   const fetchBooks = async () => {
     try {
-      const { data } = await api.get('/books');
-      setBooks(data);
+      const [{ data: booksData }, { data: reqData }] = await Promise.all([
+        api.get('/books'),
+        api.get('/requests/me')
+      ]);
+      setBooks(booksData);
+      setMyRequests(reqData);
     } catch (err) {
       toast.error('Failed to load books');
     }
@@ -36,6 +42,19 @@ export default function BookCatalog() {
       toast.error(err.response?.data?.error || 'Failed to request book');
     } finally {
       setRequestingId(null);
+    }
+  };
+
+  const handleReturn = async (requestId: number) => {
+    setReturningId(requestId);
+    try {
+      await api.post(`/requests/${requestId}/return`);
+      toast.success('Book returned successfully! 📚');
+      fetchBooks();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to return book');
+    } finally {
+      setReturningId(null);
     }
   };
 
@@ -121,7 +140,10 @@ export default function BookCatalog() {
               <BookCard
                 book={book}
                 onRequest={handleRequest}
+                onReturn={handleReturn}
                 isRequesting={requestingId === book.id}
+                issuedRequestId={myRequests.find(r => r.bookId === book.id && r.status === 'ISSUED')?.id}
+                isReturning={returningId === myRequests.find(r => r.bookId === book.id && r.status === 'ISSUED')?.id}
               />
             </motion.div>
           ))}

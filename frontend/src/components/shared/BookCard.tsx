@@ -2,16 +2,27 @@ import type { Book } from '../../types';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
-import { BookOpen, User } from 'lucide-react';
+import { BookOpen, User, RotateCcw } from 'lucide-react';
 
 interface BookCardProps {
   book: Book;
   onRequest?: (bookId: number) => void;
+  onReturn?: (requestId: number) => void;
   isRequesting?: boolean;
+  isReturning?: boolean;
+  issuedRequestId?: number;
   showRequest?: boolean;
 }
 
-export default function BookCard({ book, onRequest, isRequesting, showRequest = true }: BookCardProps) {
+export default function BookCard({ 
+  book, 
+  onRequest, 
+  onReturn,
+  isRequesting, 
+  isReturning,
+  issuedRequestId,
+  showRequest = true 
+}: BookCardProps) {
   const isAvailable = book.availableCopies > 0;
 
   return (
@@ -41,7 +52,18 @@ export default function BookCard({ book, onRequest, isRequesting, showRequest = 
           {book.author}
         </div>
 
-        {showRequest && (
+        {showRequest && issuedRequestId ? (
+          <Button
+            variant="success"
+            size="sm"
+            className="w-full mt-auto"
+            isLoading={isReturning}
+            onClick={() => onReturn?.(issuedRequestId)}
+          >
+            <RotateCcw className="w-4 h-4" />
+            Return Book
+          </Button>
+        ) : showRequest && (
           <Button
             variant={isAvailable ? 'primary' : 'secondary'}
             size="sm"

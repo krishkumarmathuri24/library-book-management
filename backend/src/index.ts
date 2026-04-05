@@ -152,13 +152,17 @@ app.post('/api/requests/:id/issue', authenticate, async (req: any, res: any) => 
   res.json({ message: 'Book issued successfully' });
 });
 
-// Admin Route to handle Returned Book
+// Route to handle Returned Book (Admins or the requesting user)
 app.post('/api/requests/:id/return', authenticate, async (req: any, res: any) => {
-  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Admins only' });
   const reqId = req.params.id;
 
   const request = await get<any>('SELECT id, user_id as "user_id", book_id as "book_id", status FROM requests WHERE id = ?', [reqId]);
   if (!request || request.status !== 'ISSUED') return res.status(400).json({ error: 'Invalid operation' });
+
+  // Only Admin or the requesting user can return the book
+  if (req.user.role !== 'ADMIN' && String(request.user_id) !== String(req.user.id)) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
 
   await run('UPDATE books SET available_copies = available_copies + 1 WHERE id = ?', [request.book_id]);
   await run('UPDATE requests SET status = ? WHERE id = ?', ['RETURNED', reqId]);
@@ -180,6 +184,28 @@ app.get('/api/analytics', authenticate, async (req: any, res: any) => {
     totalQueued: await get('SELECT COUNT(*) as c FROM requests WHERE status = \'QUEUED\''),
   });
 });
+
+// Background Auto-Issue Processor
+// Simulates a queue moving linearly based on estimated processing time
+setInterval(async () => {
+  try {
+    const queuedList = await all<any>('SELECT id, book_id as "book_id" FROM requests WHERE status = ? ORDER BY priority DESC, request_time ASC', ['QUEUED']);
+    
+    let issuedAny = false;
+    for (const request of queuedList) {
+      const book = await get<any>('SELECT available_copies as "available_copies" FROM books WHERE id = ?', [request.book_id]);
+      if (book && book.available_copies > 0) {
+        await run('UPDATE books SET available_copies = available_copies - 1 WHERE id = ?', [request.book_id]);
+        await run('UPDATE requests SET status = ? WHERE id = ?', ['ISSUED', request.id]);
+        issuedAny = true;
+      }
+    }
+    
+    if (issuedAny) emitQueueUpdate();
+  } catch (err) {
+    console.error('Auto-issue processor error:', err);
+  }
+}, 15000); // Automatically attempt issues every 15 seconds
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
