@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { Server } from 'socket.io';
@@ -24,12 +25,12 @@ initDb().then(() => console.log('Database initialized'));
 
 const emitQueueUpdate = async () => {
   const queued = await all(`
-    SELECT r.id, r.userId, r.bookId, r.status, r.requestTime, r.priority, b.title as bookTitle, u.username 
+    SELECT r.id, r.user_id as "userId", r.book_id as "bookId", r.status, r.request_time as "requestTime", r.priority, b.title as "bookTitle", u.username 
     FROM requests r
-    JOIN books b ON r.bookId = b.id
-    JOIN users u ON r.userId = u.id
+    JOIN books b ON r.book_id = b.id
+    JOIN users u ON r.user_id = u.id
     WHERE r.status = 'QUEUED'
-    ORDER BY r.priority DESC, r.requestTime ASC
+    ORDER BY r.priority DESC, r.request_time ASC
   `);
   io.emit('queue-update', queued);
 };
@@ -68,7 +69,7 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = await get<any>('SELECT * FROM users WHERE username = ?', [username]);
+  const user = await get<any>('SELECT id, username, password, role FROM users WHERE username = ?', [username]);
   if (!user) return res.status(401).json({ error: 'User not found' });
 
   const match = await bcrypt.compare(password, user.password);
@@ -80,19 +81,19 @@ app.post('/api/auth/login', async (req, res) => {
 
 // Books Routes
 app.get('/api/books', async (req, res) => {
-  const books = await all('SELECT * FROM books');
+  const books = await all('SELECT id, title, author, available_copies as "availableCopies", cover_img as "coverImg" FROM books');
   res.json(books);
 });
 
 // Queue Routes
 app.get('/api/queue', authenticate, async (req, res) => {
   const queued = await all(`
-    SELECT r.id, r.userId, r.bookId, r.status, r.requestTime, r.priority, b.title as bookTitle, u.username 
+    SELECT r.id, r.user_id as "userId", r.book_id as "bookId", r.status, r.request_time as "requestTime", r.priority, b.title as "bookTitle", u.username 
     FROM requests r
-    JOIN books b ON r.bookId = b.id
-    JOIN users u ON r.userId = u.id
+    JOIN books b ON r.book_id = b.id
+    JOIN users u ON r.user_id = u.id
     WHERE r.status = 'QUEUED'
-    ORDER BY r.priority DESC, r.requestTime ASC
+    ORDER BY r.priority DESC, r.request_time ASC
   `);
   res.json(queued);
 });
@@ -105,10 +106,10 @@ app.post('/api/requests', authenticate, async (req: any, res: any) => {
   const priority = userRole === 'FACULTY' || userRole === 'ADMIN' ? 1 : 0; // priority scheduling
   
   // Check if book exists
-  const book = await get<any>('SELECT * FROM books WHERE id = ?', [bookId]);
+  const book = await get<any>('SELECT id, title, available_copies as "availableCopies" FROM books WHERE id = ?', [bookId]);
   if (!book) return res.status(404).json({ error: 'Book not found' });
 
-  await run('INSERT INTO requests (userId, bookId, status, requestTime, priority) VALUES (?, ?, ?, ?, ?)', 
+  await run('INSERT INTO requests (user_id, book_id, status, request_time, priority) VALUES (?, ?, ?, ?, ?)', 
     [userId, bookId, 'QUEUED', Date.now(), priority]);
   
   emitQueueUpdate();
@@ -117,11 +118,11 @@ app.post('/api/requests', authenticate, async (req: any, res: any) => {
 
 app.get('/api/requests/me', authenticate, async (req: any, res: any) => {
   const myRequests = await all(`
-    SELECT r.id, r.userId, r.bookId, r.status, r.requestTime, r.priority, b.title as bookTitle 
+    SELECT r.id, r.user_id as "userId", r.book_id as "bookId", r.status, r.request_time as "requestTime", r.priority, b.title as "bookTitle" 
     FROM requests r
-    JOIN books b ON r.bookId = b.id
-    WHERE r.userId = ?
-    ORDER BY r.requestTime DESC
+    JOIN books b ON r.book_id = b.id
+    WHERE r.user_id = ?
+    ORDER BY r.request_time DESC
   `, [req.user.id]);
   res.json(myRequests);
 });
@@ -131,16 +132,16 @@ app.post('/api/requests/:id/issue', authenticate, async (req: any, res: any) => 
   if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Admins only' });
   const reqId = req.params.id;
 
-  const request = await get<any>('SELECT * FROM requests WHERE id = ?', [reqId]);
+  const request = await get<any>('SELECT id, user_id as "user_id", book_id as "book_id", status, priority FROM requests WHERE id = ?', [reqId]);
   if (!request) return res.status(404).json({ error: 'Request not found' });
 
   if (request.status !== 'QUEUED') return res.status(400).json({ error: 'Request is not in queue' });
 
   // Update book copies
-  const book = await get<any>('SELECT * FROM books WHERE id = ?', [request.bookId]);
-  if (book.availableCopies <= 0) return res.status(400).json({ error: 'No copies available' });
+  const book = await get<any>('SELECT * FROM books WHERE id = ?', [request.book_id]);
+  if (book.available_copies <= 0) return res.status(400).json({ error: 'No copies available' });
 
-  await run('UPDATE books SET availableCopies = availableCopies - 1 WHERE id = ?', [request.bookId]);
+  await run('UPDATE books SET available_copies = available_copies - 1 WHERE id = ?', [request.book_id]);
   await run('UPDATE requests SET status = ? WHERE id = ?', ['ISSUED', reqId]);
   
   emitQueueUpdate();
@@ -152,10 +153,10 @@ app.post('/api/requests/:id/return', authenticate, async (req: any, res: any) =>
   if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Admins only' });
   const reqId = req.params.id;
 
-  const request = await get<any>('SELECT * FROM requests WHERE id = ?', [reqId]);
+  const request = await get<any>('SELECT id, user_id as "user_id", book_id as "book_id", status FROM requests WHERE id = ?', [reqId]);
   if (!request || request.status !== 'ISSUED') return res.status(400).json({ error: 'Invalid operation' });
 
-  await run('UPDATE books SET availableCopies = availableCopies + 1 WHERE id = ?', [request.bookId]);
+  await run('UPDATE books SET available_copies = available_copies + 1 WHERE id = ?', [request.book_id]);
   await run('UPDATE requests SET status = ? WHERE id = ?', ['RETURNED', reqId]);
   
   emitQueueUpdate();
@@ -171,8 +172,8 @@ app.get('/api/analytics', authenticate, async (req: any, res: any) => {
   res.json({
     avgWaitTimeMinutes: 14.5,
     busiestHour: '10:00 AM',
-    totalIssued: await get('SELECT COUNT(*) as c FROM requests WHERE status = "ISSUED"'),
-    totalQueued: await get('SELECT COUNT(*) as c FROM requests WHERE status = "QUEUED"'),
+    totalIssued: await get('SELECT COUNT(*) as c FROM requests WHERE status = \'ISSUED\''),
+    totalQueued: await get('SELECT COUNT(*) as c FROM requests WHERE status = \'QUEUED\''),
   });
 });
 
