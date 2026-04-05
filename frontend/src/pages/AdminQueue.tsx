@@ -146,30 +146,37 @@ export default function AdminQueue() {
 
                     {/* Student */}
                     <div className="col-span-3 flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white text-xs font-bold`}>
+                      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
                         {getInitials(item.username)}
                       </div>
-                      <span className="font-medium text-gray-900 dark:text-white text-sm">{item.username}</span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold md:hidden mb-0.5">Student</p>
+                        <span className="font-medium text-gray-900 dark:text-white text-sm">{item.username}</span>
+                      </div>
                     </div>
-
+ 
                     {/* Book */}
                     <div className="col-span-3">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold md:hidden mb-0.5">Book Requested</p>
                       <p className="text-sm text-gray-900 dark:text-white truncate">📖 {item.bookTitle}</p>
                     </div>
-
+ 
                     {/* Requested */}
                     <div className="col-span-2">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold md:hidden mb-0.5">Requested At</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{formatTimeAgo(item.requestTime)}</p>
                     </div>
-
+ 
                     {/* Priority */}
                     <div className="col-span-1">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold md:hidden mb-0.5">Priority</p>
                       {item.priority > 0 ? (
                         <Badge variant="priority"><Zap className="w-3 h-3" /> High</Badge>
                       ) : (
                         <Badge variant="default">Normal</Badge>
                       )}
                     </div>
+
 
                     {/* Actions */}
                     <div className="col-span-2 flex items-center gap-2 justify-end">

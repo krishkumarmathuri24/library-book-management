@@ -4,7 +4,7 @@ import api from '../lib/api';
 import BookCard from '../components/shared/BookCard';
 import Input from '../components/ui/Input';
 import type { Book } from '../types';
-import { Search, BookOpen, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function BookCatalog() {
@@ -80,12 +80,12 @@ export default function BookCatalog() {
             icon={<Search className="w-5 h-5" />}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(['all', 'available', 'unavailable'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 filter === f
                   ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
                   : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700'

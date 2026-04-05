@@ -7,7 +7,7 @@ import api from '../lib/api';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
-import { formatTimeAgo, estimateWaitTime } from '../lib/utils';
+import { estimateWaitTime } from '../lib/utils';
 import type { QueueRequest, Book } from '../types';
 import { BookOpen, Clock, List, TrendingUp, ArrowRight, BookMarked, Layers } from 'lucide-react';
 
@@ -70,7 +70,7 @@ export default function StudentDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
       >
         <Card className="p-5">
           <div className="flex items-center gap-3">
