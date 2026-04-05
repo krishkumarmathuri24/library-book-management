@@ -56,7 +56,9 @@ function authenticate(req: any, res: any, next: any) {
 
 // Authentication Routes
 app.post('/api/auth/register', async (req, res) => {
-  const { username, password, role } = req.body;
+  const username = req.body.username?.trim();
+  const { password, role } = req.body;
+  
   if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
   const hash = await bcrypt.hash(password, 10);
   try {
@@ -68,7 +70,9 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  const { username, password } = req.body;
+  const username = req.body.username?.trim();
+  const { password } = req.body;
+  
   const user = await get<any>('SELECT id, username, password, role FROM users WHERE username = ?', [username]);
   if (!user) return res.status(401).json({ error: 'User not found' });
 
