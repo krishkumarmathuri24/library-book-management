@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../ui/ThemeToggle';
-import { BookOpen, LogOut, Menu, X, Bell } from 'lucide-react';
+import { BookOpen, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Navbar() {
