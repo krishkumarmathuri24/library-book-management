@@ -15,7 +15,7 @@ export default function BookCard({ book, onRequest, isRequesting, showRequest = 
   const isAvailable = book.availableCopies > 0;
 
   return (
-    <Card hover className="overflow-hidden group">
+    <Card hover className="overflow-hidden group flex flex-col h-full">
       {/* Cover Image */}
       <div className="relative h-48 overflow-hidden">
         <img
@@ -32,7 +32,7 @@ export default function BookCard({ book, onRequest, isRequesting, showRequest = 
       </div>
       
       {/* Content */}
-      <div className="p-5">
+      <div className="p-5 flex flex-col flex-1">
         <h3 className="font-heading font-bold text-gray-900 dark:text-white text-lg line-clamp-2 mb-1">
           {book.title}
         </h3>
@@ -45,7 +45,7 @@ export default function BookCard({ book, onRequest, isRequesting, showRequest = 
           <Button
             variant={isAvailable ? 'primary' : 'secondary'}
             size="sm"
-            className="w-full"
+            className="w-full mt-auto"
             disabled={!isAvailable || isRequesting}
             isLoading={isRequesting}
             onClick={() => onRequest?.(book.id)}
