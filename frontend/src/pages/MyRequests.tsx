@@ -7,7 +7,7 @@ import Button from '../components/ui/Button';
 import QRCodeModal from '../components/shared/QRCodeModal';
 import type { QueueRequest } from '../types';
 import { formatTimeAgo } from '../lib/utils';
-import { BookOpen, QrCode, Clock, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
+import { QrCode, Clock, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 
 export default function MyRequests() {
   const [requests, setRequests] = useState<QueueRequest[]>([]);

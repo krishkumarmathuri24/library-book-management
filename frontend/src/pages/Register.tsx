@@ -7,7 +7,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import Background3D from '../components/three/Background3D';
-import { BookOpen, Lock, UserCircle, UserPlus, ShieldCheck, GraduationCap } from 'lucide-react';
+import { Lock, UserCircle, UserPlus, ShieldCheck, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Register() {
