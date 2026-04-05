@@ -1,8 +1,2 @@
-/* redirect all routes to index.html for React Router */
-/*
-  /dashboard  /index.html  200
-  /catalog    /index.html  200
-  /queue      /index.html  200
-  /admin/*    /index.html  200
-*/
+# Standard Single Page Application redirect for Netlify
 /*  /index.html  200
