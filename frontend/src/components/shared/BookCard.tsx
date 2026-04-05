@@ -1,8 +1,9 @@
+import { useState, useEffect } from 'react';
 import type { Book } from '../../types';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
-import { BookOpen, User, RotateCcw } from 'lucide-react';
+import { BookOpen, User, RotateCcw, Clock } from 'lucide-react';
 
 interface BookCardProps {
   book: Book;
@@ -11,6 +12,10 @@ interface BookCardProps {
   isRequesting?: boolean;
   isReturning?: boolean;
   issuedRequestId?: number;
+  queuedRequest?: {
+    requestTime: number;
+    position: number;
+  };
   showRequest?: boolean;
 }
 
@@ -21,9 +26,30 @@ export default function BookCard({
   isRequesting, 
   isReturning,
   issuedRequestId,
+  queuedRequest,
   showRequest = true 
 }: BookCardProps) {
   const isAvailable = book.availableCopies > 0;
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!queuedRequest) {
+      setTimeLeft(null);
+      return;
+    }
+    
+    // The required target time to pass the 1-minute-per-position rule
+    const targetTime = queuedRequest.requestTime + (queuedRequest.position * 60000);
+    
+    const update = () => {
+      const remaining = Math.max(0, targetTime - Date.now());
+      setTimeLeft(remaining);
+    };
+    
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [queuedRequest]);
 
   return (
     <Card hover className="overflow-hidden group flex flex-col h-full">
@@ -63,6 +89,22 @@ export default function BookCard({
             <RotateCcw className="w-4 h-4" />
             Return Book
           </Button>
+        ) : showRequest && queuedRequest ? (
+          <div className="w-full mt-auto flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs font-medium text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-3 py-2 rounded-lg">
+              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> ETA</span>
+              <span>{timeLeft !== null && timeLeft > 0 ? `${Math.ceil(timeLeft / 1000)}s` : 'Issuing...'}</span>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              disabled={true}
+            >
+              <BookOpen className="w-4 h-4" />
+              Requested (Pos {queuedRequest.position})
+            </Button>
+          </div>
         ) : showRequest && (
           <Button
             variant={isAvailable ? 'primary' : 'secondary'}

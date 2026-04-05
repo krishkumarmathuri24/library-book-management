@@ -132,23 +132,45 @@ export default function BookCatalog() {
           transition={{ delay: 0.2 }}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
         >
-          {filteredBooks.map((book, index) => (
-            <motion.div
-              key={book.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 * index }}
-            >
-              <BookCard
-                book={book}
-                onRequest={handleRequest}
-                onReturn={handleReturn}
-                isRequesting={requestingId === book.id}
-                issuedRequestId={myRequests.find(r => r.bookId === book.id && r.status === 'ISSUED')?.id}
-                isReturning={returningId === myRequests.find(r => r.bookId === book.id && r.status === 'ISSUED')?.id}
-              />
-            </motion.div>
-          ))}
+          {filteredBooks.map((book, index) => {
+            const queueForBook = queue.filter(r => r.bookId === book.id && r.status === 'QUEUED');
+            const myCurrentReq = myRequests.find(r => r.bookId === book.id && r.status === 'QUEUED');
+            let queuedRequest = undefined;
+            if (myCurrentReq) {
+              const myIndex = queueForBook.findIndex(r => r.id === myCurrentReq.id);
+              if (myIndex !== -1) {
+                queuedRequest = {
+                  requestTime: myCurrentReq.requestTime,
+                  position: myIndex + 1
+                };
+              } else {
+                queuedRequest = {
+                  requestTime: myCurrentReq.requestTime,
+                  position: 1
+                };
+              }
+            }
+
+            return (
+              <motion.div
+                key={book.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 * index }}
+                className="h-full"
+              >
+                <BookCard
+                  book={book}
+                  onRequest={handleRequest}
+                  onReturn={handleReturn}
+                  isRequesting={requestingId === book.id}
+                  queuedRequest={queuedRequest}
+                  issuedRequestId={myRequests.find(r => r.bookId === book.id && r.status === 'ISSUED')?.id}
+                  isReturning={returningId === myRequests.find(r => r.bookId === book.id && r.status === 'ISSUED')?.id}
+                />
+              </motion.div>
+            );
+          })}
         </motion.div>
       )}
 

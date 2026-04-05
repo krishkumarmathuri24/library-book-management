@@ -186,26 +186,49 @@ app.get('/api/analytics', authenticate, async (req: any, res: any) => {
 });
 
 // Background Auto-Issue Processor
-// Simulates a queue moving linearly based on estimated processing time
+// Simulates a strict time-locked queue where priority determines position,
+// and position dictates a minimum wait time of exactly 60 seconds per spot.
 setInterval(async () => {
   try {
-    const queuedList = await all<any>('SELECT id, book_id as "book_id" FROM requests WHERE status = ? ORDER BY priority DESC, request_time ASC', ['QUEUED']);
+    const queuedList = await all<any>('SELECT id, book_id as "book_id", request_time as "request_time" FROM requests WHERE status = ? ORDER BY priority DESC, request_time ASC', ['QUEUED']);
     
+    // Group requests by book
+    const bookQueues: Record<string, any[]> = {};
+    for (const req of queuedList) {
+      if (!bookQueues[req.book_id]) bookQueues[req.book_id] = [];
+      bookQueues[req.book_id].push(req);
+    }
+
     let issuedAny = false;
-    for (const request of queuedList) {
-      const book = await get<any>('SELECT available_copies as "available_copies" FROM books WHERE id = ?', [request.book_id]);
-      if (book && book.available_copies > 0) {
-        await run('UPDATE books SET available_copies = available_copies - 1 WHERE id = ?', [request.book_id]);
-        await run('UPDATE requests SET status = ? WHERE id = ?', ['ISSUED', request.id]);
-        issuedAny = true;
+    for (const bookId in bookQueues) {
+      const queueForBook = bookQueues[bookId];
+      const book = await get<any>('SELECT available_copies as "available_copies" FROM books WHERE id = ?', [bookId]);
+      let copies = book?.available_copies || 0;
+
+      for (let i = 0; i < queueForBook.length; i++) {
+        if (copies <= 0) break; // Sold out, others keep waiting in queue
+        
+        const req = queueForBook[i];
+        const timeWaitedMs = Date.now() - req.request_time;
+        // Priority dynamically shifts index `i`. Wait is strictly 1 min per position!
+        const requiredWaitMs = (i + 1) * 60000; 
+        
+        // Only auto-issue if they have literally survived the strict wait period
+        if (timeWaitedMs >= requiredWaitMs) {
+          await run('UPDATE books SET available_copies = available_copies - 1 WHERE id = ?', [bookId]);
+          await run('UPDATE requests SET status = ? WHERE id = ?', ['ISSUED', req.id]);
+          copies--;
+          issuedAny = true;
+        }
       }
     }
     
+    // Broadcast real-time shift to all connected WebSockets
     if (issuedAny) emitQueueUpdate();
   } catch (err) {
     console.error('Auto-issue processor error:', err);
   }
-}, 15000); // Automatically attempt issues every 15 seconds
+}, 5000); // Poll every 5 seconds to rigidly enforce the minute timer
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
