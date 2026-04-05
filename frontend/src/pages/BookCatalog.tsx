@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
 import BookCard from '../components/shared/BookCard';
+import { useSocket } from '../context/SocketContext';
 import Input from '../components/ui/Input';
 import type { Book } from '../types';
 import { Search } from 'lucide-react';
@@ -14,10 +15,11 @@ export default function BookCatalog() {
   const [returningId, setReturningId] = useState<number | null>(null);
   const [myRequests, setMyRequests] = useState<any[]>([]);
   const [filter, setFilter] = useState<'all' | 'available' | 'unavailable'>('all');
+  const { queue } = useSocket();
 
   useEffect(() => {
     fetchBooks();
-  }, []);
+  }, [queue]);
 
   const fetchBooks = async () => {
     try {
