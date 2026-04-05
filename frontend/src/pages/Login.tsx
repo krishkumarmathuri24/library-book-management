@@ -28,7 +28,7 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', { username, password });
       login(data.token, data.user);
-      toast.success(`Welcome back, ${data.user.username}!`);
+      toast.success(`Great to see you, ${data.user.username}!`);
       
       if (data.user.role === 'ADMIN') {
         navigate('/admin');
@@ -58,7 +58,7 @@ export default function Login() {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-500/30">
               <BookOpen className="w-8 h-8 text-white" />
             </div>
-            <h1 className="font-heading text-2xl font-bold text-white mb-1">Welcome Back</h1>
+            <h1 className="font-heading text-2xl font-bold text-white mb-1">Great to see you</h1>
             <p className="text-gray-400 text-sm">Sign in to your LibQueue account</p>
           </div>
 
